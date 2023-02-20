@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
+	"log"
 	"os"
+	"strings"
 )
 
-var build = "2" // build number set at compile time
+var build = "1" // build number set at compile time
 
 func main() {
 	app := cli.NewApp()
@@ -92,9 +94,31 @@ func main() {
 			Usage:  "using sonar-project.properties",
 			EnvVar: "PLUGIN_USINGPROPERTIES",
 		},
+		// sonar pr
+		cli.StringFlag{
+			Name:   "pullrequestKey",
+			Usage:  "sonar.pullrequest.key",
+			EnvVar: "DRONE_PULL_REQUEST",
+		},
+		cli.StringFlag{
+			Name:   "pullrequestBranch",
+			Usage:  "sonar.pullrequest.branch",
+			EnvVar: "DRONE_SOURCE_BRANCH",
+		},
+		cli.StringFlag{
+			Name:   "pullrequestBase",
+			Usage:  "sonar.pullrequest.base",
+			EnvVar: "DRONE_TARGET_BRANCH",
+		},
+		cli.StringFlag{
+			Name:   "droneRepoName",
+			Usage:  "drone repo name",
+			EnvVar: "DRONE_REPO_NAME",
+		},
 	}
-
-	app.Run(os.Args)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatalln(err)
+	}
 }
 
 func run(c *cli.Context) {
@@ -115,8 +139,23 @@ func run(c *cli.Context) {
 			ShowProfiling:   c.String("showProfiling"),
 			BranchAnalysis:  c.Bool("branchAnalysis"),
 			UsingProperties: c.Bool("usingProperties"),
+
+			PullrequestKey:    c.String("pullrequestKey"),
+			PullrequestBranch: c.String("pullrequestBranch"),
+			PullrequestBase:   c.String("pullrequestBase"),
+
+			DroneRepoName: c.String("droneRepoName"),
 		},
 	}
+
+	log.Println("=== plugin struct ===")
+	log.Printf("%+v\n", plugin)
+	log.Println("=== ENV ===")
+	for _, e := range os.Environ() {
+		pair := strings.SplitN(e, "=", 2)
+		log.Printf("\t * %v \n", pair)
+	}
+	log.Println("===========")
 
 	if err := plugin.Exec(); err != nil {
 		fmt.Println(err)
